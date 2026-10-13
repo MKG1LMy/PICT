@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 import sys
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 # Allow source checkouts to run without relying on another editable installation.
 sys.path.insert(0, str(ROOT / "src"))
 

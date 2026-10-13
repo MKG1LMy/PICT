@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import redirect_stderr, redirect_stdout
+from datetime import datetime
 import json
 import os
 from pathlib import Path
@@ -11,6 +13,44 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+class _Tee:
+    def __init__(self, console, log):
+        self.console, self.log = console, log
+
+    def write(self, text):
+        self.console.write(text)
+        self.log.write(text)
+        self.flush()
+        return len(text)
+
+    def flush(self):
+        self.console.flush()
+        self.log.flush()
+
+
+def run_command(command):
+    """Stream both subprocess outputs to the console and the deployment log."""
+    environment = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUNBUFFERED="1")
+    with subprocess.Popen(command, cwd=ROOT, stdout=subprocess.PIPE,
+                          stderr=subprocess.STDOUT, text=True, encoding="utf-8",
+                          errors="replace", env=environment) as process:
+        for line in process.stdout:
+            print(line, end="", flush=True)
+        code = process.wait()
+    if code:
+        raise subprocess.CalledProcessError(code, command)
+
+
+def logged_main(argv=None):
+    directory = ROOT / "deployment-logs"
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / f"setup-{datetime.now():%Y%m%d-%H%M%S}-{os.getpid()}.log"
+    with path.open("w", encoding="utf-8") as log:
+        with redirect_stdout(_Tee(sys.stdout, log)), redirect_stderr(_Tee(sys.stderr, log)):
+            print(f"Deployment log: {path}")
+            return main(argv)
 
 
 def find_conda() -> str:
@@ -33,7 +73,7 @@ def driver_warnings(cuda: str, runner=subprocess.run) -> list[str]:
     requested = (int(cuda[:-1]), int(cuda[-1]))
     try:
         result = runner(["nvidia-smi"], capture_output=True, text=True, check=False, timeout=20)
-        match = re.search(r"CUDA Version:\s*(\d+)\.(\d+)", result.stdout)
+        match = re.search(r"CUDA(?: UMD)? Version:\s*(\d+)\.(\d+)", result.stdout)
         if result.returncode or not match:
             return ["Could not determine CUDA driver support. Check nvidia-smi before GPU training."]
         supported = tuple(map(int, match.groups()))
@@ -76,9 +116,14 @@ def main(argv=None) -> int:
         for command in commands:
             print(subprocess.list2cmdline(command), flush=True)
             if not args.dry_run:
-                subprocess.run(command, check=True, cwd=ROOT)
+                run_command(command)
         completed = True
     except (OSError, ValueError, KeyError, RuntimeError, subprocess.CalledProcessError) as error:
+        if isinstance(error, subprocess.CalledProcessError):
+            if error.stdout:
+                print(error.stdout)
+            if error.stderr:
+                print(error.stderr, file=sys.stderr)
         print(f"Installation did not complete: {error}", file=sys.stderr)
     finally:
         if not args.dry_run:
@@ -94,4 +139,4 @@ def main(argv=None) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(logged_main())

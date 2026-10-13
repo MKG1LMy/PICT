@@ -22,8 +22,9 @@ def deployment():
 
 
 @pytest.mark.parametrize("version,expected", [("13.1", False), ("13.0", False), ("12.8", True)])
-def test_driver_support_is_advisory(version, expected):
-    runner = lambda *a, **kw: SimpleNamespace(returncode=0, stdout=f"CUDA Version: {version}")
+@pytest.mark.parametrize("label", ["CUDA Version", "CUDA UMD Version"])
+def test_driver_support_is_advisory(version, expected, label):
+    runner = lambda *a, **kw: SimpleNamespace(returncode=0, stdout=f"{label}: {version}")
     assert bool(deployment().driver_warnings("130", runner)) is expected
 
 
@@ -47,6 +48,7 @@ def test_install_status_is_separate_from_driver_warning(monkeypatch, capsys, ins
             raise subprocess.CalledProcessError(1, command)
         return SimpleNamespace(returncode=0)
     monkeypatch.setattr(module.subprocess, "run", run)
+    monkeypatch.setattr(module, "run_command", run)
     assert module.main([]) == int(install_fails)
     output = capsys.readouterr()
     assert "Driver update recommended." in output.out

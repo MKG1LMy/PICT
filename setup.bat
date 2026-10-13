@@ -2,23 +2,15 @@
 setlocal EnableExtensions DisableDelayedExpansion
 title PICT Model Environment Setup
 set "PICT_SETUP_CODE=1"
-set "PICT_CONDA="
 rem Desktop launchers may omit standard Windows tools from PATH.
 set "PATH=%SystemRoot%\System32;%SystemRoot%\System32\WindowsPowerShell\v1.0;%PATH%"
 
-rem Prefer the active installation, then PATH and common installer locations.
-if defined CONDA_EXE if exist "%CONDA_EXE%" set "PICT_CONDA=%CONDA_EXE%"
-if defined PICT_CONDA goto conda_found
-for /f "delims=" %%I in ('where conda.exe 2^>nul') do if not defined PICT_CONDA set "PICT_CONDA=%%I"
-if defined PICT_CONDA goto conda_found
-for %%I in ("%USERPROFILE%\miniconda3\Scripts\conda.exe" "%USERPROFILE%\anaconda3\Scripts\conda.exe" "%LOCALAPPDATA%\miniconda3\Scripts\conda.exe" "%LOCALAPPDATA%\anaconda3\Scripts\conda.exe" "%ProgramData%\miniconda3\Scripts\conda.exe" "%ProgramData%\anaconda3\Scripts\conda.exe") do if not defined PICT_CONDA if exist "%%~I" set "PICT_CONDA=%%~I"
-if defined PICT_CONDA goto conda_found
-echo Conda was not found. Install Miniconda or Anaconda first.
-echo For a custom installation, run this file from its Conda Prompt.
-goto finish
+call "%~dp0deploy\find_conda.bat"
+if errorlevel 1 goto finish
 
 :conda_found
 set "CONDA_EXE=%PICT_CONDA%"
+set "PYTHONIOENCODING=utf-8"
 echo PICT Model environment setup
 echo Conda: "%PICT_CONDA%"
 for %%I in ("%PICT_CONDA%") do set "PICT_CONDA_SCRIPTS=%%~dpI"

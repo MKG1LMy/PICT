@@ -31,38 +31,42 @@ setup.bat --env pict_model --torch-version 2.11.0 --cuda 130
 On **Linux**, run the internal installer from a Conda-enabled terminal:
 
 ```text
-conda run -n base python deploy/setup_environment.py
+bash setup.sh
 conda activate pict_model
 ```
 
 To select another officially published PyTorch/CUDA wheel combination or environment name on Linux:
 
 ```text
-conda run -n base python deploy/setup_environment.py --env pict_model --torch-version 2.11.0 --cuda 130
+bash setup.sh --env pict_model --torch-version 2.11.0 --cuda 130
 ```
 
 `--dry-run` prints commands without creating an environment or installing packages (Windows: `setup.bat --dry-run`). For unattended Windows use, set `PICT_SETUP_NO_PAUSE=1`. The installer uses conda-forge for Python/pip and official PyTorch wheels for torch. Other Python dependencies are installed with pip. It never deletes an existing environment. Use a fresh dedicated environment to avoid OpenMP library conflicts inherited from unrelated packages. Alternative PyTorch builds are configurable but are not automatically validated research equivalents.
 
 Hardware diagnostics are warnings. **Download errors, unavailable package versions, unresolved dependencies and other actual installation failures still produce a nonzero exit status**; they are not reported as successful deployment. Conda channel terms or organization policies must be handled by the user; this script does not accept legal terms on the user's behalf.
 
+The installer saves console output and subprocess errors to `deployment-logs/setup-<timestamp>-<pid>.log`. If deployment fails, retain that log. The CUDA PyTorch download is large and may take several minutes without a progress bar in redirected output.
+
 ## One training entry point
 
-Activate the installed environment, then run:
+On **Windows**, double-click `train.bat`, or run it from a terminal:
 
 ```text
-python train.py
+train.bat
 ```
 
-`train.py` is the sole top-level training launcher on both operating systems. `configs/pipeline.json` selects models and configuration files. By default, it runs **main → DTOF-only → CNN → ANN for each training seed**, including the configured final tests, then moves to the next seed. Each model is a separate process. There is no concurrent multi-model training.
+On **Linux**, run `bash train.sh`. These platform launchers use Conda's `pict_model` environment without requiring manual activation and call the same internal Python training controller. `configs/pipeline.json` selects models and configuration files. By default, it runs **main → DTOF-only → CNN → ANN for each training seed**, including the configured final tests, then moves to the next seed. Each model is a separate process. There is no concurrent multi-model training.
+
+If deployment used a custom environment, set `PICT_ENV` to that name before launching (PowerShell: `$env:PICT_ENV="my_env"`; Linux: `PICT_ENV=my_env bash train.sh`). Set `PICT_TRAIN_NO_PAUSE=1` for unattended Windows use; otherwise the BAT pauses at exit so errors remain visible.
 
 The three default training seeds are **20736, 78631, 26605**, matching the archived 261008 run configurations. Split, validation and evaluation seeds remain **2026**. Results are written to each model's `training.output_dir/seed_<seed>/`; different seeds and models do not overwrite one another.
 
 Optional invocations use the same entry point:
 
 ```text
-python train.py --models main
-python train.py --models cnn ann
-python train.py --models main --run-epochs 2 --no-test
+train.bat --models main
+train.bat --models cnn ann
+train.bat --models main --run-epochs 2 --no-test
 ```
 
 The last command pauses after at most two additional epochs of each selected run; it is not an accuracy experiment. The normal launcher resumes a run from its last complete epoch and skips completed training stages. A stage failure stops the queue; other models are not silently marked successful. Keep settings fixed when resuming. Use a new output directory when changing the scientific configuration.

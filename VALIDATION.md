@@ -26,4 +26,12 @@ Tests ran on Windows using Python 3.11, PyTorch 2.11.0+cpu, NumPy 2.4.6, SciPy 1
 
 An initial optional GMM probe in the pre-existing local scientific environment encountered a SciPy DLL failure. Repeating with isolated NumPy/SciPy wheels removed that environment issue; no unsafe duplicate-OpenMP override was used and no existing Conda environment was modified.
 
+## Deployment and launcher follow-up (2026-10-13)
+
+An authorized real installation in the dedicated `pict_model` environment completed successfully with Python 3.12.15 and PyTorch 2.11.0+cu130. `pip check` reported no broken requirements. A small CUDA matrix operation returned finite values and BF16 support was available. This is an installation check, not formal model training or a full CUDA regression suite; the earlier full-suite record above remains unchanged.
+
+The previous unlogged deployment failure could not be reproduced. One confirmed advisory-check defect was repaired: newer `nvidia-smi` output uses `CUDA UMD Version`, whereas the old parser recognized only `CUDA Version`. Both forms are now tested. Driver failures remain advisory. New deployments save console and subprocess output under `deployment-logs/`.
+
+Windows `train.bat` and Linux `train.sh` share the internal Python controller; `setup.sh` is also provided. Windows argument forwarding, error propagation and deployment logging passed automated checks. Bash syntax and argument/error forwarding were checked using Git Bash and a fake Conda command, including a path containing spaces. Native Linux deployment remains unverified. No model training was started during this follow-up.
+
 Passing these tests does not establish long-run numerical stability, convergence or scientific validity. Choose the software and dataset licenses before publication. No remote repository was created or pushed.
