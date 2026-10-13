@@ -128,6 +128,4 @@ The posterior encoders normalize waveform latents and use bounded Q/K cross-atte
 
 ## Repository boundaries
 
-The public copy includes source, tests, research/smoke configurations, fixed data manifests, original HDF5 data and deployment support. It excludes private experiment outputs, local environments, caches, historical reports and old deployment archives. The Python import namespace remains `tdnirs_posterior` to avoid an unnecessary checkpoint/module migration; the distribution and repository name is PICT Model.
-
-No software or dataset redistribution license is inferred by this preparation. The rights holder must add the intended license and attribution before public release.
+The repository includes source code, tests, research and smoke configurations, fixed data manifests, original HDF5 data and deployment scripts. Generated experiment outputs, environments and caches are excluded. The Python import namespace is `tdnirs_posterior`; the package distribution is `pict-model`.
