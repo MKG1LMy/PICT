@@ -1,4 +1,4 @@
-"""Tiny real forward/backward/checkpoint/report checks; not research training."""
+"""Small forward/backward, checkpoint and report-generation checks."""
 import json
 from pathlib import Path
 from unittest.mock import patch

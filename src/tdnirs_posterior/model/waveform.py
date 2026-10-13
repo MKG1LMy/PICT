@@ -47,8 +47,8 @@ class WaveformPerceiver(nn.Module):
             layer, num_layers=n_layers, enable_nested_tensor=False
         )
         self.norm = nn.LayerNorm(d_model)
-        # A persistent marker makes old unnormalized checkpoints fail strict
-        # loading rather than silently changing their inference semantics.
+        # A persistent marker verifies the normalized-output protocol during
+        # strict checkpoint loading.
         self.register_buffer("normalized_output_protocol", torch.tensor(1))
 
     def forward(self, waveforms: torch.Tensor) -> torch.Tensor:

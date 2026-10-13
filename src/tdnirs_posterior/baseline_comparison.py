@@ -52,24 +52,24 @@ def compare_deterministic_baselines(
     rows: list[dict[str, Any]] = []
     casewise_rows: list[dict[str, Any]] = []
     input_statuses: dict[str, str] = {
-        "Proposed": str(explicit_report.get("status", "unknown"))
+        "PICT Model": str(explicit_report.get("status", "unknown"))
     }
-    with h5py.File(explicit_dir / "posterior.h5", "r") as proposed:
-        truth = proposed["cases"]["truth"][:]
-        active = proposed["cases"]["active_mask"][:].astype(bool)
-        layers = proposed["cases"]["layer_count"][:]
-        sample_ids = _strings(proposed["cases"]["sample_id"])
-        dtof_hash = _dataset_sha256(proposed["cases"]["dtof_input"])
-        proposed_prediction = np.zeros_like(truth)
+    with h5py.File(explicit_dir / "posterior.h5", "r") as full_model:
+        truth = full_model["cases"]["truth"][:]
+        active = full_model["cases"]["active_mask"][:].astype(bool)
+        layers = full_model["cases"]["layer_count"][:]
+        sample_ids = _strings(full_model["cases"]["sample_id"])
+        dtof_hash = _dataset_sha256(full_model["cases"]["dtof_input"])
+        full_model_prediction = np.zeros_like(truth)
         for layer in (1, 2, 3):
             scenario = next(item for item in enumerate_prior_scenarios(layer) if item.known_count == 0)
-            group = proposed["scenarios"][scenario.scenario_id]
+            group = full_model["scenarios"][scenario.scenario_id]
             indices = group["global_case_index"][:]
-            proposed_prediction[indices] = np.median(group["samples"][:], axis=1)
-        proposed_metrics = evaluate_point_predictions(proposed_prediction, truth, active, layers, bootstrap_seed=int(explicit_report["reproducibility"]["observation_seed"]) + 810000)
-        reports: dict[str, Any] = {"Proposed": proposed_metrics}
+            full_model_prediction[indices] = np.median(group["samples"][:], axis=1)
+        full_model_metrics = evaluate_point_predictions(full_model_prediction, truth, active, layers, bootstrap_seed=int(explicit_report["reproducibility"]["observation_seed"]) + 810000)
+        reports: dict[str, Any] = {"PICT Model": full_model_metrics}
         model_profiles: dict[str, Any] = {
-            "Proposed": {
+            "PICT Model": {
                 "parameter_count": explicit_report.get("scope", {}).get("model_parameter_count"),
                 "test_elapsed_seconds": explicit_report.get("runtime", {}).get("elapsed_seconds"),
                 "probabilistic_output": True,
@@ -92,7 +92,7 @@ def compare_deterministic_baselines(
                 }
                 mismatches = [key for key, passed in checks.items() if not passed]
                 if mismatches:
-                    raise ValueError(f"{name} is not strictly paired with the proposed test: {', '.join(mismatches)}")
+                    raise ValueError(f"{name} is not strictly paired with the PICT Model test: {', '.join(mismatches)}")
                 prediction = baseline["cases"]["prediction"][:]
             metrics = evaluate_point_predictions(prediction, truth, active, layers, bootstrap_seed=int(report["reproducibility"]["observation_seed"]) + 820000 + model_index)
             reports[name] = metrics
@@ -106,11 +106,11 @@ def compare_deterministic_baselines(
                 "probabilistic_output": False,
                 "finite_fraction": report.get("native_output", {}).get("finite_fraction"),
             }
-            proposed_case = {(row["case_index"], row["parameter"]): row for row in proposed_metrics["casewise_metrics"]}
+            full_model_case = {(row["case_index"], row["parameter"]): row for row in full_model_metrics["casewise_metrics"]}
             for item in metrics["casewise_metrics"]:
-                reference = proposed_case[(item["case_index"], item["parameter"])]
+                reference = full_model_case[(item["case_index"], item["parameter"])]
                 delta = item["normalized_absolute_error"] - reference["normalized_absolute_error"]
-                casewise_rows.append({"model": name, "sample_id": sample_ids[item["case_index"]], "layer_count": item["layer_count"], "parameter": item["parameter"], "baseline_normalized_absolute_error": item["normalized_absolute_error"], "proposed_normalized_absolute_error": reference["normalized_absolute_error"], "delta_baseline_minus_proposed": delta})
+                casewise_rows.append({"model": name, "sample_id": sample_ids[item["case_index"]], "layer_count": item["layer_count"], "parameter": item["parameter"], "baseline_normalized_absolute_error": item["normalized_absolute_error"], "full_model_normalized_absolute_error": reference["normalized_absolute_error"], "delta_baseline_minus_full_model": delta})
 
         for model_name, metrics in reports.items():
             for item in metrics["parameter_metrics"]:
@@ -123,10 +123,10 @@ def compare_deterministic_baselines(
             parameters = sorted({row["parameter"] for row in selected_model if row["layer_count"] == layer})
             for parameter in parameters:
                 selected = [row for row in selected_model if row["layer_count"] == layer and row["parameter"] == parameter]
-                delta = np.asarray([row["delta_baseline_minus_proposed"] for row in selected])
+                delta = np.asarray([row["delta_baseline_minus_full_model"] for row in selected])
                 baseline_error = float(np.mean([row["baseline_normalized_absolute_error"] for row in selected]))
-                proposed_error = float(np.mean([row["proposed_normalized_absolute_error"] for row in selected]))
-                paired_rows.append({"baseline": model, "layer_count": layer, "parameter": parameter, "baseline_nmae": baseline_error, "proposed_nmae": proposed_error, "delta_baseline_minus_proposed": float(np.mean(delta)), "proposed_relative_improvement": (baseline_error - proposed_error) / baseline_error if baseline_error > 0 else float("nan"), "delta_ci95": _bootstrap_mean(delta, 900000 + layer * 100 + len(paired_rows), 1000)})
+                full_model_error = float(np.mean([row["full_model_normalized_absolute_error"] for row in selected]))
+                paired_rows.append({"baseline": model, "layer_count": layer, "parameter": parameter, "baseline_nmae": baseline_error, "full_model_nmae": full_model_error, "delta_baseline_minus_full_model": float(np.mean(delta)), "full_model_relative_improvement": (baseline_error - full_model_error) / baseline_error if baseline_error > 0 else float("nan"), "delta_ci95": _bootstrap_mean(delta, 900000 + layer * 100 + len(paired_rows), 1000)})
 
     _write_csv(destination / "model_metrics.csv", rows)
     _write_csv(destination / "paired_effects.csv", paired_rows)
@@ -174,7 +174,7 @@ def compare_deterministic_baselines(
     effect_rows = "".join(
         f"<tr><td>{html.escape(row['baseline'])}</td><td>N={row['layer_count']}</td>"
         f"<td>{html.escape(row['parameter'])}</td><td>{pct(row['baseline_nmae'])}</td>"
-        f"<td>{pct(row['proposed_nmae'])}</td><td>{pct(row['proposed_relative_improvement'])}</td>"
+        f"<td>{pct(row['full_model_nmae'])}</td><td>{pct(row['full_model_relative_improvement'])}</td>"
         f"<td>{html.escape(str(row['delta_ci95']))}</td></tr>" for row in paired_rows
     )
     warning = "" if not noncomplete_models else (

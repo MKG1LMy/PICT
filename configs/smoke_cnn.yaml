@@ -10,7 +10,7 @@ training:
   effective_batch_size: 2
   # DataLoader worker processes; benchmark on the target host.
   num_workers: 0
-  # Smoke-only cap; never use for formal performance claims.
+  # Reduced training sample count for code checks.
   max_train_samples: 6
   # Smoke-only validation cap.
   max_val_samples: 6

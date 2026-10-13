@@ -74,7 +74,7 @@ def test_all_15_channel_subsets_have_finite_gradients_and_ignore_invalid_slots(v
     (out * torch.linspace(-1, 1, out.shape[-1])).sum().backward()
     assert all(torch.isfinite(p.grad).all() for p in model.parameters() if p.grad is not None)
     state = model.state_dict()
-    # Production must not silently reinterpret old unnormalized checkpoints.
+    # Strict loading requires the normalized-output protocol marker.
     old = {k: v for k, v in state.items() if not k.endswith("normalized_output_protocol")}
     with pytest.raises(RuntimeError, match="normalized_output_protocol"):
         model.load_state_dict(old)

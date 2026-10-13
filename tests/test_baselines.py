@@ -283,9 +283,9 @@ def test_baseline_comparison_requires_and_accepts_strict_pairing(tmp_path) -> No
     dtof = np.arange(3 * 4 * 2 * 10, dtype=np.float32).reshape(3, 4, 2, 10)
     sample_ids = np.asarray(["a", "b", "c"], dtype=object)
     fingerprint = {"records_sha256": "same", "source_files_sha256": {}}
-    proposed = tmp_path / "proposed"
-    proposed.mkdir()
-    (proposed / "report.json").write_text(
+    full_model = tmp_path / "full_model"
+    full_model.mkdir()
+    (full_model / "report.json").write_text(
         json.dumps(
                 {
                     "status": "completed",
@@ -299,7 +299,7 @@ def test_baseline_comparison_requires_and_accepts_strict_pairing(tmp_path) -> No
         ),
         encoding="utf-8",
     )
-    with h5py.File(proposed / "posterior.h5", "w") as handle:
+    with h5py.File(full_model / "posterior.h5", "w") as handle:
         cases = handle.create_group("cases")
         cases.create_dataset("truth", data=truth)
         cases.create_dataset("active_mask", data=active)
@@ -343,9 +343,9 @@ def test_baseline_comparison_requires_and_accepts_strict_pairing(tmp_path) -> No
             cases.create_dataset("dtof_input", data=dtof)
             cases.create_dataset("sample_id", data=sample_ids, dtype=h5py.string_dtype("utf-8"))
     report = compare_deterministic_baselines(
-        proposed, baseline_paths["cnn"], baseline_paths["ann"], tmp_path / "comparison"
+        full_model, baseline_paths["cnn"], baseline_paths["ann"], tmp_path / "comparison"
     )
     assert report.is_file()
     payload = json.loads((report.parent / "comparison.json").read_text(encoding="utf-8"))
-    assert set(payload["models"]) == {"Proposed", "CNN", "ANN"}
+    assert set(payload["models"]) == {"PICT Model", "CNN", "ANN"}
     assert payload["status"] == "completed"

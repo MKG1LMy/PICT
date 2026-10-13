@@ -1,4 +1,4 @@
-# PICT Model: research configuration.
+# PICT Model: training configuration.
 # Independent random streams. Change only training seeds for repeated experiments.
 seeds:
   # Frozen case assignment; keep fixed for comparisons.

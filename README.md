@@ -1,12 +1,12 @@
 # PICT Model
 
-Research code for layered time-domain near-infrared spectroscopy (TD-NIRS). The project contains an explicit-IRF conditional posterior model, a DTOF-only posterior ablation, and deterministic CNN and ANN baselines.
+Models for layered time-domain near-infrared spectroscopy (TD-NIRS). The project contains an explicit-IRF conditional posterior model, a DTOF-only posterior ablation, and deterministic CNN and ANN baselines.
 
 ## Scope
 
 Inputs use the fixed SDS order **10, 20, 30, 40 mm**, **2500 time bins**, and **4 ps/bin**. Any nonempty channel subset is supported. The full model receives a measured IRF for each available DTOF channel. DTOF-only, CNN and ANN never receive IRF tensors, but use the same simulated DTOF protocol. Algorithmic time alignment is disabled by default.
 
-The posterior models accept the layer count (N=1, 2 or 3) and optional exact parameter priors. They return joint posterior draws, not a list of discrete solutions with known probabilities. Baselines return point estimates and do not accept parameter priors. Finite out-of-domain draws are retained and flagged rather than rejected. This is research software, not a clinical device.
+The posterior models accept the layer count (N=1, 2 or 3) and optional exact parameter priors. They return joint posterior draws, not a list of discrete solutions with known probabilities. Baselines return point estimates and do not accept parameter priors. Finite out-of-domain draws are retained and flagged rather than rejected.
 
 ## Requirements
 
@@ -35,13 +35,13 @@ bash setup.sh
 conda activate pict_model
 ```
 
-To select another officially published PyTorch/CUDA wheel combination or environment name on Linux:
+To select another official PyTorch/CUDA wheel combination or environment name on Linux:
 
 ```text
 bash setup.sh --env pict_model --torch-version 2.11.0 --cuda 130
 ```
 
-`--dry-run` prints commands without creating an environment or installing packages (Windows: `setup.bat --dry-run`). For unattended Windows use, set `PICT_SETUP_NO_PAUSE=1`. The installer uses conda-forge for Python/pip and official PyTorch wheels for torch. Other Python dependencies are installed with pip. It never deletes an existing environment. Use a fresh dedicated environment to avoid OpenMP library conflicts inherited from unrelated packages. Alternative PyTorch builds are configurable but are not automatically validated research equivalents.
+`--dry-run` prints commands without creating an environment or installing packages (Windows: `setup.bat --dry-run`). For unattended Windows use, set `PICT_SETUP_NO_PAUSE=1`. The installer uses conda-forge for Python/pip and official PyTorch wheels for torch. Other Python dependencies are installed with pip. It never deletes an existing environment. Use a fresh dedicated environment to avoid OpenMP library conflicts inherited from unrelated packages. Alternative PyTorch builds can be selected through the installer arguments.
 
 Hardware diagnostics are warnings. **Download errors, unavailable package versions, unresolved dependencies and other actual installation failures still produce a nonzero exit status**; they are not reported as successful deployment. Conda channel terms or organization policies must be handled by the user; this script does not accept legal terms on the user's behalf.
 
@@ -71,11 +71,11 @@ train.bat --models cnn ann
 train.bat --models main --run-epochs 2 --no-test
 ```
 
-The last command pauses after at most two additional epochs of each selected run; it is not an accuracy experiment. The normal launcher resumes a run from its last complete epoch and skips completed training stages. A stage failure stops the queue; other models are not silently marked successful. Keep settings fixed when resuming. Use a new output directory when changing the scientific configuration.
+The last command pauses after at most two additional epochs of each selected run; it is not an accuracy experiment. The normal launcher resumes a run from its last complete epoch and skips completed training stages. A stage failure stops the queue; other models are not silently marked successful. Keep settings fixed when resuming. Use a new output directory when changing the experiment configuration.
 
 ### Configuration
 
-`configs/research.yaml` defines the common data, observation, training and evaluation protocol. The other three research files inherit it and override only model-specific fields. English comments explain the main parameters.
+`configs/research.yaml` defines the common data, observation, training and evaluation protocol. The three model-specific configuration files inherit it and override model-specific fields.
 
 | Setting | Default / meaning |
 |---|---|
@@ -92,7 +92,7 @@ The last command pauses after at most two additional epochs of each selected run
 
 For limited VRAM, lower the micro-batch size before starting a run and keep the effective batch size an integer multiple. This may affect throughput and floating-point trajectories. Choose DataLoader workers for the target CPU/storage rather than assuming more is better.
 
-Available-channel counts 4/3/2/1 have training probabilities 40/30/15/15%. Layer counts are balanced in the objective. Within N=2, d1 <=15 mm is the core thickness range; within N=3, d1+d2 in [10,20] mm is the core range. Core/other thicknesses have 70/30 weight. Full tests still retain all thickness ranges. These are research choices, not universal physical limits.
+Available-channel counts 4/3/2/1 have training probabilities 40/30/15/15%. Layer counts are balanced in the objective. Within N=2, d1 <=15 mm is the core thickness range; within N=3, d1+d2 in [10,20] mm is the core range. Core/other thicknesses have 70/30 weight. Full tests still retain all thickness ranges. These ranges define the training and validation weighting; all thickness ranges remain in the test set.
 
 ## Included data
 
@@ -122,10 +122,10 @@ Use strict paired comparisons: matching case IDs, observations, channel protocol
 python -m pytest -q
 ```
 
-Tests include small forward/backward, checkpoint and report checks. They do not establish full-run convergence or scientific accuracy. Some GPU and optional platform GMM tests can be skipped if their backend is unavailable. `configs/smoke*.yaml` use reduced sample counts and model sizes for code validation; use `configs/research*.yaml` for the full experiments.
+Tests include small forward/backward, checkpoint and report checks. Prediction performance is evaluated by the model test reports. Some GPU and optional platform GMM tests can be skipped if their backend is unavailable. `configs/smoke*.yaml` use reduced sample counts and model sizes for code validation; use `configs/research*.yaml` for the full experiments.
 
-The posterior encoders normalize waveform latents and use bounded Q/K cross-attention with explicit FP32 arithmetic in that module. Gradient norms use FP64 reductions; nonfinite or explosive gradients stop training before an optimizer update. Logs contain per-epoch numerical summaries, and failures write `training_failure.json`. Checkpoints from before this normalization protocol are not interchangeable with the current model.
+The posterior encoders normalize waveform latents and use bounded Q/K cross-attention with explicit FP32 arithmetic in that module. Gradient norms use FP64 reductions; nonfinite or explosive gradients stop training before an optimizer update. Logs contain per-epoch numerical summaries, and failures write `training_failure.json`. Strict checkpoint loading verifies the waveform normalization marker.
 
 ## Repository boundaries
 
-The repository includes source code, tests, research and smoke configurations, fixed data manifests, original HDF5 data and deployment scripts. Generated experiment outputs, environments and caches are excluded. The Python import namespace is `tdnirs_posterior`; the package distribution is `pict-model`.
+The repository includes source code, tests, training and smoke configurations, fixed data manifests, HDF5 data and deployment scripts. Generated experiment outputs, environments and caches are excluded. The Python import namespace is `tdnirs_posterior`; the package distribution is `pict-model`.

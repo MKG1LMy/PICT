@@ -1,4 +1,4 @@
-# PICT Model: research configuration.
+# PICT Model: training configuration.
 extends: research.yaml
 
 model:

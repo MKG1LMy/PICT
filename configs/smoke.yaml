@@ -167,7 +167,7 @@ training:
   num_workers: 0
   # BF16 on supported CUDA devices; set false for FP32. FP16 is not used.
   amp: true
-  # Smoke-only cap; never use for formal performance claims.
+  # Reduced training sample count for code checks.
   max_train_samples: 64
   # Smoke-only validation cap.
   max_val_samples: 32

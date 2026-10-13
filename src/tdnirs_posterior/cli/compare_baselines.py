@@ -6,7 +6,7 @@ from ..baseline_comparison import compare_deterministic_baselines
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Compare the proposed model with deterministic CNN and ANN baselines")
+    parser = argparse.ArgumentParser(description="Compare PICT Model with deterministic CNN and ANN baselines")
     parser.add_argument("--explicit-irf-test", required=True)
     parser.add_argument("--cnn-test", required=True)
     parser.add_argument("--ann-test", required=True)
