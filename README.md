@@ -20,20 +20,28 @@ The default training configuration uses BF16. On a GPU without BF16 support, set
 
 ## Installation
 
-From a Conda-enabled terminal, change to this directory and run the same commands on Windows or Linux:
+On **Windows**, double-click `setup.bat`. It locates Conda/Miniconda and runs the internal installer using Conda's base Python; a separate system Python installation is not needed. The window stays open at the end so you can read warnings or failures. For a custom Conda location, launch it from a Conda Prompt.
+
+Optional Windows command-line invocation:
 
 ```text
-conda run -n base python setup_environment.py
+setup.bat --env pict_model --torch-version 2.11.0 --cuda 130
+```
+
+On **Linux**, run the internal installer from a Conda-enabled terminal:
+
+```text
+conda run -n base python deploy/setup_environment.py
 conda activate pict_model
 ```
 
-To select another officially published PyTorch/CUDA wheel combination or environment name:
+To select another officially published PyTorch/CUDA wheel combination or environment name on Linux:
 
 ```text
-conda run -n base python setup_environment.py --env pict_model --torch-version 2.11.0 --cuda 130
+conda run -n base python deploy/setup_environment.py --env pict_model --torch-version 2.11.0 --cuda 130
 ```
 
-`--dry-run` prints commands without creating an environment or installing packages. The installer uses conda-forge for Python/pip and official PyTorch wheels for torch. Other Python dependencies are installed with pip. It never deletes an existing environment. Use a fresh dedicated environment to avoid OpenMP library conflicts inherited from unrelated packages. Alternative PyTorch builds are configurable but are not automatically validated research equivalents.
+`--dry-run` prints commands without creating an environment or installing packages (Windows: `setup.bat --dry-run`). For unattended Windows use, set `PICT_SETUP_NO_PAUSE=1`. The installer uses conda-forge for Python/pip and official PyTorch wheels for torch. Other Python dependencies are installed with pip. It never deletes an existing environment. Use a fresh dedicated environment to avoid OpenMP library conflicts inherited from unrelated packages. Alternative PyTorch builds are configurable but are not automatically validated research equivalents.
 
 Hardware diagnostics are warnings. **Download errors, unavailable package versions, unresolved dependencies and other actual installation failures still produce a nonzero exit status**; they are not reported as successful deployment. Conda channel terms or organization policies must be handled by the user; this script does not accept legal terms on the user's behalf.
 

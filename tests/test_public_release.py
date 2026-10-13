@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def deployment():
-    spec = importlib.util.spec_from_file_location("public_setup", ROOT / "setup_environment.py")
+    spec = importlib.util.spec_from_file_location("public_setup", ROOT / "deploy/setup_environment.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
