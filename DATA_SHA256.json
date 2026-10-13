@@ -1,0 +1,42 @@
+[
+  {
+    "path": "Data/dataset-20260828-171751-a36e36/mixed-dataset.h5",
+    "bytes": 101935491,
+    "sha256": "66c984cc29783d8289ed63e7447b1cc63c81c66a6288776d841c50b094b3f005"
+  },
+  {
+    "path": "Data/dataset-20260828-172814-a20500/mixed-dataset.h5",
+    "bytes": 102069535,
+    "sha256": "bc4ebcdac7556c7bd0c5897af3ba0801f47cf551de2b35aeebac182e406d8d1c"
+  },
+  {
+    "path": "Data/dataset-20260828-173036-f21dc8/mixed-dataset.h5",
+    "bytes": 101996759,
+    "sha256": "0f41c18119fabc802d742141b6568acfe1635488fc9321df602f09a7185cf2e9"
+  },
+  {
+    "path": "Data/dataset-20260830-153203-910134/mixed-dataset.h5",
+    "bytes": 102075035,
+    "sha256": "01d79f181d2c49fdcf76d1b6cf5875eaedb1a86d3ef1eb3359ba7fefacffc815"
+  },
+  {
+    "path": "Data/dataset-20260901-110405-438799/mixed-dataset.h5",
+    "bytes": 67661985,
+    "sha256": "5e386247e7ce132885576f396a39678806f72affab692f27e3e817f0a09a6b73"
+  },
+  {
+    "path": "Data/dataset-20260904-093026-9e32eb/mixed-dataset.h5",
+    "bytes": 67565349,
+    "sha256": "bbca8ebfc638adb26af04d9c4f3eae91ef5acc3439be8352291eca7bba0560fa"
+  },
+  {
+    "path": "Data/dataset-20260909-144423-f5198f/mixed-dataset.h5",
+    "bytes": 136287470,
+    "sha256": "de7fbf5e5dcb56abf76f17ccb2b40da4743bb235315fcb76875a6cc6d3b24d8d"
+  },
+  {
+    "path": "Data/dataset-20260909-161055-3ac03c/mixed-dataset.h5",
+    "bytes": 136200855,
+    "sha256": "faae3904383493c59bd2b3365cd86c2db3e0b38b6a72cdd685c7a82a9551fe04"
+  }
+]

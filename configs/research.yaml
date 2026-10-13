@@ -1,0 +1,266 @@
+# PICT Model: research configuration.
+# Independent random streams. Change only training seeds for repeated experiments.
+seeds:
+  # Frozen case assignment; keep fixed for comparisons.
+  data_split: 2026
+  training: [20736, 78631, 26605]
+  # Frozen validation observations and posterior draws.
+  validation: 2026
+  # Formal test settings (or its fixed seed within the seeds block).
+  evaluation: 2026
+
+data:
+  # Raw HDF5 directory, relative to this project.
+  root: Data
+  # Frozen case IDs and split assignments. Do not share with a different split policy.
+  manifest_dir: artifacts/data
+  # Fixed channel order, in mm. Any nonempty subset may be observed.
+  sds_mm: [10.0, 20.0, 30.0, 40.0]
+  # Required input length; externally resample/crop other data.
+  time_bins: 2500
+  # Required time-bin width in ps.
+  time_bin_ps: 4.0
+  # Time-axis origin in ps.
+  time_start_ps: 0.0
+  # Training / validation / test fractions; splitting is at phantom level.
+  split: [0.8, 0.1, 0.1]
+
+simulation:
+  irf:
+    # Internal IRF support window in ns, before input cropping.
+    work_window_ns: 20.0
+    # Main-peak reference position before applying system delay, in ns.
+    canonical_peak_ns: 2.0
+    # Uniform system-delay range, shared by paired IRF and DTOF.
+    system_delay_ns: [-1.0, 1.0]
+    # Probabilities of the six base response families (sum to one).
+    family_probabilities:
+      generalized_gaussian: 0.20
+      ex_gaussian: 0.20
+      single_tail: 0.20
+      double_tail: 0.20
+      stretched_tail: 0.10
+      skewed_peak: 0.10
+    # Log-uniform core FWHM range in ps, not the full composite waveform FWHM.
+    fwhm_ps: [50.0, 1300.0]
+    # Generalized-Gaussian shape range.
+    beta: [1.5, 4.0]
+    # Ratio of left/right core widths.
+    skew_ratio: [0.6, 1.8]
+    # Exponent range for a stretched-exponential tail.
+    stretch_exponent: [0.45, 0.9]
+    # Tail area fraction before the combined non-core cap.
+    tail_fraction: [0.0, 0.4]
+    # Log-uniform primary tail time constant in ps.
+    tail_tau_ps: [50.0, 1500.0]
+    # Multiplier of the primary tail time constant.
+    second_tail_multiplier: [1.8, 4.0]
+    # Upper bound on the secondary tail time constant, in ps.
+    max_second_tail_tau_ps: 4000.0
+    # Maximum combined area of tails and optional response components.
+    max_noncore_fraction: 0.55
+    # Optional nonnegative IRF components; not pile-up, dead time or DNL.
+    artifacts:
+      shoulder: {probability: 0.20, fraction: [0.01, 0.12], delay_ps: [50.0, 600.0], width_scale: [0.7, 1.8]}
+      satellite: {probability: 0.15, fraction: [0.005, 0.10], delay_ps: [100.0, 2000.0], width_scale: [0.5, 1.5], count: [1, 3]}
+      prepulse: {probability: 0.05, fraction: [0.002, 0.03], delay_ps: [100.0, 1000.0], width_scale: [0.5, 1.5]}
+      echo_train: {probability: 0.05, fraction: [0.002, 0.05], delay_ps: [50.0, 300.0], width_scale: [0.5, 1.2], count: [2, 4], spacing_ps: [50.0, 300.0], decay: [0.25, 0.65]}
+    # Correlated true-IRF generation across the four detector channels.
+    channel_model:
+      mode_probabilities: {all_shared: 0.20, four_similar: 0.35, grouped_2_2: 0.15, grouped_3_1: 0.10, partial_outlier: 0.15, heterogeneous: 0.05}
+      slight_perturbation: {delay_sigma_ps: 40.0, delay_clip_ps: 120.0, fwhm_log_sigma: 0.08, fwhm_scale_clip: [0.80, 1.25], beta_delta: 0.20, tail_fraction_delta: 0.03, tail_tau_scale: [0.80, 1.25], artifact_amplitude_relative: 0.25, artifact_delay_jitter_ps: 40.0, artifact_toggle_probability: 0.0}
+      moderate_perturbation: {delay_sigma_ps: 100.0, delay_clip_ps: 300.0, fwhm_log_sigma: 0.18, fwhm_scale_clip: [0.60, 1.60], beta_delta: 0.40, tail_fraction_delta: 0.08, tail_tau_scale: [0.60, 1.70], artifact_amplitude_relative: 0.50, artifact_delay_jitter_ps: 100.0, artifact_toggle_probability: 0.20}
+      outlier: {one_channel_probability: 0.75, delay_magnitude_ps: [200.0, 800.0], fwhm_scale: [0.50, 2.00], fwhm_clip_ps: [30.0, 2000.0], max_tail_fraction: 0.50, max_tail_tau_ps: 4000.0}
+    # Independent measured-IRF signal counts; log-uniform range.
+    measured_counts: [10000, 10000000]
+
+  dtof:
+    # Signal-count range at 40 mm; one common exposure gain sets all channel counts.
+    count_40mm: [500, 100000]
+    # Background/signal ratio over the full convolution window, before cropping.
+    background_fraction: [0.001, 1.0]
+    # Maximum fractional linear drift of the background.
+    background_drift_fraction: 0.2
+
+  preprocessing:
+    # False preserves delays. True shifts each measured IRF and its DTOF equally.
+    time_alignment_enabled: false
+    # Leading window used to estimate the background, in ps.
+    baseline_window_ps: 250.0
+    # Target measured-IRF peak location when alignment is enabled.
+    alignment_anchor_ns: 0.5
+    # Smoothing width for peak detection, in bins.
+    alignment_smooth_bins: 7
+
+model:
+  # explicit_irf or dtof_only; the latter has no IRF encoder or transfer-function branch.
+  variant: explicit_irf
+  # Transformer hidden width; must be divisible by n_heads.
+  d_model: 256
+  # Number of attention heads.
+  n_heads: 8
+  # Latent tokens per complete waveform.
+  waveform_latents: 128
+  # Latent refinement layers in each shared waveform encoder.
+  waveform_layers: 2
+  # Layers for fusion across available SDS channels.
+  signal_layers: 6
+  # Layers in the conditional flow velocity network.
+  posterior_layers: 8
+  # Positive Fourier bins, excluding DC.
+  frequency_bins: 128
+  # Dropout probability.
+  dropout: 0.1
+
+training:
+  # Maximum epochs; early stopping may finish sooner.
+  epochs: 10000
+  # Cases processed in one forward/backward pass; reduce for limited VRAM.
+  micro_batch_size: 64
+  # Cases per optimizer update; integer multiple of micro_batch_size.
+  effective_batch_size: 128
+  # Peak AdamW learning rate after warmup.
+  learning_rate: 0.0002
+  # AdamW weight decay.
+  weight_decay: 0.0001
+  # Fixed warmup duration; independent of the maximum epoch count.
+  warmup_epochs: 100
+  # Reduce learning rate on a validation plateau; never use test data.
+  lr_schedule:
+    type: plateau
+    # Multiplicative learning-rate reduction.
+    factor: 0.5
+    # Consecutive non-improving eligible epochs before the corresponding action.
+    patience_epochs: 15
+    # Minimum relative improvement required to reset the monitor.
+    min_delta_relative: 0.002
+    # Cooldown after a learning-rate reduction.
+    cooldown_epochs: 10
+    # Learning-rate floor.
+    min_lr: 0.000001
+    # Minimum observation period after an actual learning-rate reduction.
+    early_stop_grace_epochs: 20
+  # Global gradient-norm clipping threshold after finite/explosive-gradient checks.
+  grad_clip: 1.0
+  # Weight for consistency between two measurements of the same phantom.
+  consistency_weight: 0.1
+  # EMA decay per successful optimizer update; does not affect backpropagation.
+  ema_decay: 0.9985
+  # Within N=2/3, allocate 70% loss/validation mass to core thicknesses, 30% to others.
+  thickness_focus:
+    enabled: true
+    # N=2 core: d1 <= this value (mm).
+    n2_d1_max_mm: 15.0
+    # N=3 core: d1+d2 in this inclusive range (mm).
+    n3_depth_mm: [10.0, 20.0]
+    core_weight: 0.7
+    other_weight: 0.3
+  # EMA flow monitor; also requires posterior plateau and scheduler eligibility.
+  early_stopping:
+    monitor: ema_val_flow
+    # Number of recent validation measurements averaged for monitoring.
+    smoothing_window: 5
+    # Minimum relative improvement required to reset the monitor.
+    min_delta_relative: 0.002
+    # Consecutive non-improving eligible epochs before the corresponding action.
+    patience_epochs: 50
+    # Raw-weight validation interval; zero disables this diagnostic.
+    raw_validation_interval_epochs: 10
+  # Lightweight validation only; not the formal test protocol.
+  posterior_validation:
+    enabled: true
+    # First posterior validation epoch (one-based).
+    start_epoch: 100
+    # Epoch interval between posterior validation calls.
+    interval_epochs: 10
+    # Fixed validation cases per N; N=2/3 are stratified by thickness focus.
+    cases_per_layer: 64
+    # Evaluation cases per batch; posterior draws multiply the memory requirement.
+    batch_size: 3
+    # Joint posterior draws per case and condition.
+    posterior_samples: 64
+    # Heun integration steps for posterior sampling.
+    solver_steps: 20
+    # Minimum relative improvement required to reset the monitor.
+    min_delta_relative: 0.002
+    # Weight of no-prior nCRPS in posterior selection.
+    no_prior_score_weight: 0.7
+    # Weight of structured-prior nCRPS in posterior selection.
+    prior_score_weight: 0.3
+    # Maximum regression of protected C3/C4 layer/prior groups.
+    max_group_regression_relative: 0.05
+    # Posterior-validation patience, counted in evaluations rather than epochs.
+    patience_evaluations: 7
+    # Maximum absolute 90% coverage error for protected validation groups.
+    max_coverage_error_90: 0.15
+    subset_seed_offset: 400000
+    posterior_seed_offset: 500000
+  # DataLoader worker processes; benchmark on the target host.
+  num_workers: 2
+  # BF16 on supported CUDA devices; set false for FP32. FP16 is not used.
+  amp: true
+  # Model-specific output root; repetitions create seed_<seed> subdirectories.
+  output_dir: runs/research/main-model-001
+
+inference:
+  # Heun integration steps for posterior sampling.
+  solver_steps: 50
+  # Joint posterior draws per case and condition.
+  posterior_samples: 1024
+
+# Formal test settings (or its fixed seed within the seeds block).
+evaluation:
+  # Run formal tests only after terminal training, not after --run-epochs pauses.
+  auto_run: true
+  # ema (default inference weights) or raw.
+  weights: ema
+  # Evaluation cases per batch; posterior draws multiply the memory requirement.
+  batch_size: 3
+  # DataLoader worker processes; benchmark on the target host.
+  num_workers: 2
+  # Joint posterior draws per case and condition.
+  posterior_samples: 512
+  # Heun integration steps for posterior sampling.
+  solver_steps: 50
+  # Enumerate every exact-prior mask with at least one unknown parameter.
+  prior_protocol: exhaustive_exact
+  # Named scenarios: shuffled prior values and neutral-value Mask-Only controls.
+  prior_interventions:
+    enabled: true
+    scope: named
+    modes: [shuffled_prior, mask_only]
+    shuffle_seed_offset: 400000
+  # Hold DTOF fixed and replace model-input IRF; explicit-IRF model only.
+  irf_interventions:
+    enabled: true
+    scope: no_prior_and_named
+    modes: [shuffled_irf, fixed_irf, zero_irf, channel_permuted_irf]
+    shuffle_seed_offset: 600000
+    fixed_seed_offset: 700000
+    # Candidate bank size for selecting the fixed-IRF feature medoid.
+    fixed_candidate_count: 4096
+  # Case-level bootstrap count (or posterior-draw resamples within GMM settings).
+  bootstrap_replicates: 1000
+  # Candidate joint modes; not proof of physically equivalent forward solutions.
+  multimodality:
+    enabled: true
+    # Maximum representative cases for detailed GMM analysis per named scenario.
+    cases_per_scenario: 12
+    # Largest GMM component count considered by BIC.
+    max_components: 4
+    # Case-level bootstrap count (or posterior-draw resamples within GMM settings).
+    bootstrap_replicates: 20
+    # Minimum retained GMM component probability mass.
+    minimum_weight: 0.05
+    # Required standardized separation of candidate components.
+    minimum_separation: 2.0
+    # Initial GMM iteration limit.
+    max_iter: 300
+    # Iteration limit for the more regularized GMM retry.
+    retry_max_iter: 1000
+  observation_seed_offset: 200000
+  posterior_seed_offset: 300000
+  # BF16 on supported CUDA devices; set false for FP32. FP16 is not used.
+  amp: true
+  # Null means all 600 fixed test cases; use a limit only for smoke checks.
+  max_test_samples: null

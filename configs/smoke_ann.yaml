@@ -1,0 +1,43 @@
+# PICT Model: smoke checks only.
+extends: research_ann.yaml
+
+baseline:
+  ann_widths: [16, 8]
+
+training:
+  # Maximum epochs; early stopping may finish sooner.
+  epochs: 2
+  # Cases processed in one forward/backward pass; reduce for limited VRAM.
+  micro_batch_size: 2
+  # Cases per optimizer update; integer multiple of micro_batch_size.
+  effective_batch_size: 2
+  # DataLoader worker processes; benchmark on the target host.
+  num_workers: 0
+  # Smoke-only cap; never use for formal performance claims.
+  max_train_samples: 6
+  # Smoke-only validation cap.
+  max_val_samples: 6
+  # Model-specific output root; repetitions create seed_<seed> subdirectories.
+  output_dir: runs/smoke/ann
+  baseline_early_stopping:
+    # Start baseline checkpoint selection and patience only after warmup.
+    start_after_warmup: false
+    # Number of recent validation measurements averaged for monitoring.
+    smoothing_window: 1
+    # Minimum relative improvement required to reset the monitor.
+    min_delta_relative: 0.0
+    # Consecutive non-improving eligible epochs before the corresponding action.
+    patience_epochs: 2
+
+# Formal test settings (or its fixed seed within the seeds block).
+evaluation:
+  # Run formal tests only after terminal training, not after --run-epochs pauses.
+  auto_run: false
+  # Evaluation cases per batch; posterior draws multiply the memory requirement.
+  batch_size: 2
+  # DataLoader worker processes; benchmark on the target host.
+  num_workers: 0
+  # Null means all 600 fixed test cases; use a limit only for smoke checks.
+  max_test_samples: 6
+  # Case-level bootstrap count (or posterior-draw resamples within GMM settings).
+  bootstrap_replicates: 10

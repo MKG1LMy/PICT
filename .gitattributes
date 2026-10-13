@@ -1,0 +1,7 @@
+* text=auto
+*.py text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf
+*.html text eol=lf
+*.h5 filter=lfs diff=lfs merge=lfs -text

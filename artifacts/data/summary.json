@@ -1,0 +1,53 @@
+{
+  "root": "Data",
+  "total": 6000,
+  "split": {
+    "train": 4800,
+    "validation": 600,
+    "test": 600
+  },
+  "layer_count": {
+    "1": 2002,
+    "2": 2000,
+    "3": 1998
+  },
+  "split_layer_count": {
+    "train": {
+      "1": 1602,
+      "2": 1600,
+      "3": 1598
+    },
+    "validation": {
+      "1": 200,
+      "2": 200,
+      "3": 200
+    },
+    "test": {
+      "1": 200,
+      "2": 200,
+      "3": 200
+    }
+  },
+  "status": {
+    "1": 5974,
+    "3": 26
+  },
+  "source_files": {
+    "dataset-20260828-171751-a36e36/mixed-dataset.h5": 750,
+    "dataset-20260828-172814-a20500/mixed-dataset.h5": 750,
+    "dataset-20260828-173036-f21dc8/mixed-dataset.h5": 750,
+    "dataset-20260830-153203-910134/mixed-dataset.h5": 750,
+    "dataset-20260901-110405-438799/mixed-dataset.h5": 500,
+    "dataset-20260904-093026-9e32eb/mixed-dataset.h5": 500,
+    "dataset-20260909-144423-f5198f/mixed-dataset.h5": 1000,
+    "dataset-20260909-161055-3ac03c/mixed-dataset.h5": 1000
+  },
+  "dataset_policy": {
+    "split_seed": 2026,
+    "split": [
+      0.8,
+      0.1,
+      0.1
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "models": ["main", "dtof_only", "cnn", "ann"],
+  "configs": {
+    "main": "research.yaml",
+    "dtof_only": "research_dtof_only.yaml",
+    "cnn": "research_cnn.yaml",
+    "ann": "research_ann.yaml"
+  }
+}

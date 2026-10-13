@@ -1,0 +1,16 @@
+# PICT Model: research configuration.
+extends: research.yaml
+
+model:
+  # explicit_irf or dtof_only; the latter has no IRF encoder or transfer-function branch.
+  variant: dtof_only
+
+training:
+  # Model-specific output root; repetitions create seed_<seed> subdirectories.
+  output_dir: runs/ablation/dtof-only-001
+
+# Formal test settings (or its fixed seed within the seeds block).
+evaluation:
+  # Hold DTOF fixed and replace model-input IRF; explicit-IRF model only.
+  irf_interventions:
+    enabled: false

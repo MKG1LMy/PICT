@@ -1,0 +1,27 @@
+# PICT Model: research configuration.
+extends: research.yaml
+
+baseline:
+  # Deterministic DTOF-only baseline: cnn or ann; no parameter priors.
+  architecture: cnn
+  # Dropout probability.
+  dropout: 0.1
+  cnn_channels: [32, 64, 128, 256]
+  cnn_pool_bins: 16
+  cnn_head_widths: [512, 256]
+  # Smooth L1 transition width in normalized target coordinates.
+  loss_beta: 0.1
+training:
+  # Model-specific output root; repetitions create seed_<seed> subdirectories.
+  output_dir: runs/baselines/cnn-001
+  # Peak AdamW learning rate after warmup.
+  learning_rate: 0.0001
+  baseline_early_stopping:
+    # Start baseline checkpoint selection and patience only after warmup.
+    start_after_warmup: true
+    # Number of recent validation measurements averaged for monitoring.
+    smoothing_window: 5
+    # Minimum relative improvement required to reset the monitor.
+    min_delta_relative: 0.002
+    # Consecutive non-improving eligible epochs before the corresponding action.
+    patience_epochs: 50

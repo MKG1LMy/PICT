@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PICT Model posterior evaluation</title>
+<style>
+:root { color-scheme: light; font: 15px/1.55 system-ui, sans-serif; color: #173047; background: #edf2f7; }
+body { margin: 0; } main { max-width: 1440px; margin: auto; padding: 28px; }
+h1 { font-size: 32px; } h2 { margin-top: 0; } h3 { margin-bottom: 8px; }
+section, .card { background: white; border: 1px solid #d8e2eb; border-radius: 10px; padding: 22px; margin: 18px 0; }
+nav { display: flex; flex-wrap: wrap; gap: 16px; } a { color: #14649a; }
+.muted { color: #516778; } .warning { border-left: 5px solid #b5362e; padding: 12px; background: #fff0ec; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(300px,1fr)); gap: 16px; }
+.scroll { overflow: auto; max-height: 650px; } table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { border-bottom: 1px solid #d8e2eb; padding: 8px; text-align: left; vertical-align: top; }
+th { position: sticky; top: 0; background: #e8f1f7; white-space: nowrap; }
+td { max-width: 380px; min-width: 80px; overflow-wrap: anywhere; }
+input, button { padding: 8px; margin: 6px 6px 6px 0; } input { width: min(450px,85%); }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 500px; overflow: auto; }
+svg { width: 100%; max-width: 650px; } img { width: 100%; max-width: 1100px; }
+.bar { background: #397dac; height: 16px; margin: 5px 0 15px; } .pager { color: #516778; }
+footer { padding: 20px; color: #516778; } #channel-subsets { max-width: 1396px; margin: 18px auto; }
+</style>
+</head>
+<body><main>
+<h1>PICT Model posterior evaluation</h1>
+<p class="muted">Fixed test cases, deterministic observations, and native joint posterior samples.</p>
+<nav><a href="#overview">Overview</a><a href="#accuracy">Accuracy</a><a href="#calibration">Calibration</a><a href="#thickness">Thickness</a><a href="#priors">Priors</a><a href="#irf">IRF</a><a href="#domain">Domain diagnostics</a><a href="#modes">Candidate modes</a><a href="#methods">Methods</a></nav>
+<section id="overview"><h2>Evaluation scope and status</h2><div id="status"></div><div id="summary"></div><details><summary>Reproducibility and runtime</summary><pre id="provenance"></pre></details></section>
+<section id="accuracy"><h2>No-prior performance by layer count</h2><p>Lower nMAE and nCRPS are better. R² is auxiliary. Only active, unknown parameters contribute; the derived third-layer starting depth d1+d2 is reported separately.</p><div id="bars"></div><div id="no-prior"></div><h3>Parameter-level errors</h3><div id="parameters"></div></section>
+<section id="calibration"><h2>Marginal and joint calibration</h2><p>Read coverage together with interval width and error. SBC assesses marginal ranks; TARP assesses joint coverage. Concentration alone does not establish accuracy.</p><div id="tarp" class="grid"></div><h3>SBC, coverage, interval widths and dispersion</h3><div id="calibration-table"></div></section>
+<section id="thickness"><h2>Thickness-stratified performance</h2><p>Spearman associations are not causal effects. Third-layer starting depth is computed for each joint posterior draw as d1+d2, not by adding marginal medians.</p><div id="thickness-table"></div><h3>Thickness associations with case-level bootstrap intervals</h3><div id="associations"></div></section>
+<section id="priors"><h2>Exact-prior evaluation</h2><p>Known parameters are excluded from accuracy. Comparisons use the same cases, observations and remaining unknown parameters. Absolute change is candidate minus reference; negative is better for error scores. Relative improvement is (reference minus candidate) / reference; positive is better. Raw relative-improvement fields are fractions (0.10 = 10%). A zero reference does not define a percentage improvement.</p>
+<h3>All legal prior masks</h3><div id="scenarios"></div><h3>Paired effects and nMAE relative improvement</h3><div id="paired"></div><h3>Prior-type summaries</h3><div id="prior-summary"></div>
+<h3>Counterfactual validation of prior values</h3><p>Mask-Only retains the mask and inserts zero in normalized coordinates. It is an intervention, not a valid deployment prior. Worse performance with shuffled values alone does not establish useful use of correct values. Evidence requires paired nCRPS and energy-score improvements over both controls.</p><pre id="prior-evidence"></pre><div id="interventions"></div><h3>Intervention summaries</h3><div id="intervention-summary"></div></section>
+<section id="irf"><h2>IRF interventions and paired-channel effects</h2><p>DTOF, priors and initial posterior noise are held fixed. Shuffled, fixed, zero and channel-permuted IRFs test different dependencies. Zero IRF is a distribution-shift intervention, not a retrained DTOF-only model. Interpret all_shared channel permutations separately: they mainly exchange independent measurement noise.</p><pre id="irf-evidence"></pre><div id="irf-effects"></div><h3>Effects by IRF difficulty</h3><div id="irf-summary"></div><h3>Absolute performance by IRF difficulty</h3><div id="irf-difficulty"></div><h3>Channel-level acquisition metadata</h3><div id="irf-metadata"></div></section>
+<section id="domain"><h2>Native posterior and numerical diagnostics</h2><p>Finite samples outside training support are retained without rejection, clipping or resampling. Outside training support is not equivalent to physically impossible, and does not prove generalization. Nonfinite samples are recorded as numerical failures, not silently removed.</p><div id="domain-table"></div><details open><summary>Numerical failure cases</summary><pre id="failures"></pre></details></section>
+<section id="modes"><h2>Stable candidate multimodal sample distributions</h2><p>Accuracy uses the complete native posterior. The oracle nearest mode uses the known test truth and is diagnostic only; it cannot replace deployment accuracy or justify deleting other modes. A candidate mode is not a physically validated equivalent solution.</p><pre id="mode-summary"></pre><div id="mode-gallery"></div><div id="mode-table"></div><details><summary>GMM fitting warnings and failures</summary><pre id="gmm-failures"></pre></details></section>
+<section id="methods"><h2>Definitions and limitations</h2><pre id="definitions"></pre><ul id="limitations"></ul><h3>Companion files</h3><div id="files"></div><p>This offline page embeds the available summary tables. It does not run inference or reread posterior samples when opened. Full draw-level records remain in posterior.h5.</p></section>
+<footer>PICT Model · Offline evaluation report</footer>
+</main>
+<script id="report-data" type="application/json">__REPORT_DATA__</script>
+<script>
+"use strict";
+const payload = JSON.parse(document.getElementById("report-data").textContent);
+const report = payload.report || {};
+const element = id => document.getElementById(id);
+const format = value => value == null ? "not available" : typeof value === "object" ? JSON.stringify(value) : String(value);
+function showJSON(id, value) { element(id).textContent = JSON.stringify(value ?? {}, null, 2); }
+function table(id, rows) {
+  const host = element(id);
+  if (!Array.isArray(rows)) rows = Object.entries(rows || {}).map(([key,value]) => ({key, value}));
+  if (!rows.length) { host.textContent = "No results recorded for this section."; return; }
+  const columns = [...new Set(rows.flatMap(row => Object.keys(row)))];
+  const search = document.createElement("input"); search.type = "search"; search.placeholder = "Filter by scenario, N, parameter or value"; search.setAttribute("aria-label", "Filter " + id);
+  const body = document.createElement("div"); body.className = "scroll";
+  const pager = document.createElement("div"); pager.className = "pager";
+  const previous = document.createElement("button"); previous.textContent = "Previous";
+  const next = document.createElement("button"); next.textContent = "Next";
+  host.append(search,body,pager,previous,next);
+  let page = 0;
+  function draw() {
+    const query = search.value.toLowerCase();
+    const filtered = rows.filter(row => JSON.stringify(row).toLowerCase().includes(query));
+    const pages = Math.max(1,Math.ceil(filtered.length/50)); page = Math.max(0,Math.min(page,pages-1));
+    const grid = document.createElement("table"), head = document.createElement("thead"), heading = document.createElement("tr"), content = document.createElement("tbody");
+    columns.forEach(column => { const cell=document.createElement("th"); cell.textContent=column; heading.append(cell); }); head.append(heading);
+    filtered.slice(page*50,(page+1)*50).forEach(row => { const line=document.createElement("tr"); columns.forEach(column => { const cell=document.createElement("td"); cell.textContent=format(row[column]); line.append(cell); }); content.append(line); });
+    grid.append(head,content); body.replaceChildren(grid); pager.textContent=`${filtered.length} matching rows; page ${page+1}/${pages}`;
+    previous.disabled=page===0; next.disabled=page===pages-1;
+  }
+  search.addEventListener("input",()=>{page=0;draw();}); previous.onclick=()=>{page--;draw();}; next.onclick=()=>{page++;draw();}; draw();
+}
+element("status").textContent = `Status: ${report.status || "not recorded"}; numerical failure evaluations: ${report.numerical_failure_evaluations ?? "not recorded"}`;
+if (report.status !== "completed") element("status").className = "warning";
+table("summary", report.scope);
+showJSON("provenance", {checkpoint:report.checkpoint,reproducibility:report.reproducibility,runtime:report.runtime});
+const headline = report.headline?.no_prior_by_layer || {};
+table("no-prior", Object.entries(headline).map(([layer,metrics])=>({layer,...metrics})));
+for (const [layer,metrics] of Object.entries(headline)) {
+  const value=metrics.mean_normalized_mae;
+  if (typeof value !== "number" || !Number.isFinite(value)) continue;
+  const label=document.createElement("div"); label.textContent=`N=${layer} mean nMAE: ${(value*100).toFixed(2)}%`;
+  const bar=document.createElement("div"); bar.className="bar"; bar.style.width=`${Math.max(0,Math.min(100,value*100))}%`; element("bars").append(label,bar);
+}
+table("parameters",payload.parameter_metrics); table("calibration-table",payload.parameter_metrics);
+for (const row of payload.scenario_summaries || []) {
+  if (row.metadata?.known_count !== 0) continue;
+  const x=row.joint?.tarp_alpha || [], y=row.joint?.tarp_ecp || [];
+  const card=document.createElement("article"), title=document.createElement("h3"); title.textContent=row.scenario_id; card.append(title);
+  const ns="http://www.w3.org/2000/svg", svg=document.createElementNS(ns,"svg"); svg.setAttribute("viewBox","0 0 330 250");
+  const valid=x.map((v,i)=>[v,y[i]]).filter(([a,b])=>Number.isFinite(a)&&Number.isFinite(b));
+  for(const [points,color,dash] of [["30,220 300,20","#999","5 4"],[valid.map(([a,b])=>`${30+270*a},${220-200*b}`).join(" "),"#246aa4",""]]) {
+    const line=document.createElementNS(ns,"polyline"); line.setAttribute("points",points);line.setAttribute("fill","none");line.setAttribute("stroke",color);line.setAttribute("stroke-width","2");line.setAttribute("stroke-dasharray",dash);svg.append(line);
+  }
+  const label=document.createElement("p"); label.textContent="TARP: nominal coverage (horizontal, 0–1) vs empirical coverage (vertical, 0–1). Dashed line: calibrated reference.";
+  card.append(svg,label); element("tarp").append(card);
+}
+for (const [id,key] of Object.entries({"thickness-table":"thickness_metrics",associations:"thickness_associations",scenarios:"scenario_summaries",paired:"prior_paired_effects","prior-summary":"prior_summary",interventions:"prior_intervention_effects","intervention-summary":"prior_intervention_summary","irf-effects":"irf_intervention_effects","irf-summary":"irf_intervention_summary"})) table(id,payload[key]);
+showJSON("prior-evidence",report.prior_intervention_summary); showJSON("irf-evidence",report.irf_intervention_summary);
+table("irf-difficulty",report.irf_difficulty_metrics); table("irf-metadata",report.irf_case_metadata);
+table("domain-table",(payload.scenario_summaries||[]).map(row=>({scenario_id:row.scenario_id,...row.native_diagnostics})));
+showJSON("failures",report.numerical_failure_cases); showJSON("mode-summary",report.multimodality_summary); showJSON("gmm-failures",report.gmm_failure_cases);
+const modes=payload.multimodality||[];
+table("mode-table",modes.map(({plot_data_uri,...rest})=>rest));
+for (const row of modes) {
+  if (!row.plot_data_uri?.startsWith("data:image/svg+xml;base64,")) continue;
+  const item=document.createElement("details"), title=document.createElement("summary"), plot=document.createElement("img");
+  title.textContent=`${row.scenario_id || "Scenario"} / ${row.sample_id || row.case_index || "case"}`; plot.src=row.plot_data_uri; plot.alt="Joint posterior draws and candidate mode centers"; item.append(title,plot); element("mode-gallery").append(item);
+}
+showJSON("definitions",report.metric_definitions);
+for (const text of report.limitations||[]) { const item=document.createElement("li");item.textContent=text;element("limitations").append(item); }
+for (const name of ["report.json","parameter_metrics.csv","thickness_metrics.csv","thickness_associations.csv","prior_paired_effects.csv","prior_intervention_effects.csv","prior_intervention_summary.csv","prior_intervention_assignments.csv","irf_intervention_effects.csv","irf_intervention_summary.csv","irf_intervention_assignments.csv","irf_case_metadata.csv","irf_difficulty_metrics.csv","domain_diagnostics.csv","multimodality.csv","posterior.h5"]) {
+  const item=document.createElement("div"), link=document.createElement("a");link.href=name;link.textContent=name;item.append(link);element("files").append(item);
+}
+</script>
+</body></html>
