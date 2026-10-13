@@ -1,0 +1,24 @@
+PICT Model dataset
+SPDX-License-Identifier: CC-BY-4.0
+
+Copyright (c) 2026 Mengyang Li
+
+The HDF5 files under Data/, the dataset manifests under artifacts/data/, and
+DATA_SHA256.json are licensed under the Creative Commons Attribution 4.0
+International Public License (CC BY 4.0).
+
+License: https://creativecommons.org/licenses/by/4.0/
+Legal code: https://creativecommons.org/licenses/by/4.0/legalcode
+Source: https://github.com/MKG1LMy/PICT
+
+Attribution: PICT Model dataset, Mengyang Li,
+https://github.com/MKG1LMy/PICT, licensed under CC BY 4.0.
+
+Sharing and adaptation, including commercial use, are permitted under the
+license. Retain the attribution and license link and indicate modifications
+when sharing the material. These notices summarize the applicable license;
+the linked legal code governs.
+
+Source code, tests, configuration files, deployment scripts and documentation
+are covered by the MIT License in LICENSE. Third-party dependencies retain
+their respective licenses.

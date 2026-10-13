@@ -56,3 +56,9 @@ python -m tdnirs_posterior.cli.compare_baselines --help
 Use matching test cases and observations for comparisons. Candidate modes require forward validation before they can be interpreted as equivalent physical solutions.
 
 Run code checks with `python -m pytest -q`; see [Project checks](VALIDATION.md). Reduced-size configurations are available in `configs/smoke*.yaml`.
+
+## License
+
+Code, tests, configurations, scripts and documentation: [MIT](LICENSE).
+HDF5 data, dataset manifests and checksums: [CC BY 4.0](LICENSE-DATA).
+Both permit commercial use. Attribute the dataset to Mengyang Li and indicate modifications when sharing it.
