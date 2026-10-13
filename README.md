@@ -61,7 +61,7 @@ On **Linux**, run `bash train.sh`. These platform launchers use Conda's `pict_mo
 
 If deployment used a custom environment, set `PICT_ENV` to that name before launching (PowerShell: `$env:PICT_ENV="my_env"`; Linux: `PICT_ENV=my_env bash train.sh`). Set `PICT_TRAIN_NO_PAUSE=1` for unattended Windows use; otherwise the BAT pauses at exit so errors remain visible.
 
-The three default training seeds are **20736, 78631, 26605**, matching the archived 261008 run configurations. Split, validation and evaluation seeds remain **2026**. Results are written to each model's `training.output_dir/seed_<seed>/`; different seeds and models do not overwrite one another.
+The three default training seeds are **20736, 78631, 26605**. Split, validation and evaluation seeds are **2026**. Results are written to each model's `training.output_dir/seed_<seed>/`; different seeds and models do not overwrite one another.
 
 Optional invocations use the same entry point:
 
@@ -96,11 +96,11 @@ Available-channel counts 4/3/2/1 have training probabilities 40/30/15/15%. Layer
 
 ## Included data
 
-`Data/` contains eight original, unmodified `mixed-dataset.h5` files: **6000 phantoms**, with layer counts **2002/2000/1998**. The frozen split in `artifacts/data/manifest.jsonl` contains **4800/600/600** training/validation/test cases. Paths are relative; the project does not import code or data from another checkout.
+`Data/` contains eight `mixed-dataset.h5` files: **6000 phantoms**, with layer counts **2002/2000/1998**. The frozen split in `artifacts/data/manifest.jsonl` contains **4800/600/600** training/validation/test cases. Data paths are relative to the repository root.
 
 Each HDF5 file stores TPSFs at 16 SDS values (10–40 mm at 2-mm spacing), time edges, layer thicknesses, absorption and reduced scattering coefficients. The loader selects the four SDS values above. TPSFs are convolved with noise-free true IRFs before acquisition noise is applied; separate noisy measured IRFs are model inputs. Both measurement views share phantom parameters, channel availability and exact-prior mask. A/C share one measurement and B/D another; A/B have no priors, C/D share a nonempty prior mask.
 
-Simulation job logs and private host paths are not required to train and are omitted. Raw HDF5 content is preserved byte-for-byte. `DATA_SHA256.json` lists hashes for auditing. The working directory contains the actual data; Git tracks HDF5 with Git LFS. When cloning a published repository, install Git LFS and run `git lfs pull` to retrieve the data (subject to the host's storage quota). An archive may instead ship the actual HDF5 files without requiring Git LFS. Do not split phantoms anew merely to upload the repository.
+`DATA_SHA256.json` records the HDF5 checksums. The files are tracked with Git LFS. After cloning, install Git LFS and run `git lfs pull` to retrieve the data. Use the included manifest to reproduce the fixed sample split.
 
 ## Evaluation and reports
 
@@ -122,7 +122,7 @@ Use strict paired comparisons: matching case IDs, observations, channel protocol
 python -m pytest -q
 ```
 
-Tests include small real forward/backward/checkpoint/report checks. They do not establish full-run convergence or scientific accuracy. Some GPU and optional platform GMM tests can be skipped if their backend is unavailable. `configs/smoke*.yaml` are small code-validation configurations, not publishable experiment results.
+Tests include small forward/backward, checkpoint and report checks. They do not establish full-run convergence or scientific accuracy. Some GPU and optional platform GMM tests can be skipped if their backend is unavailable. `configs/smoke*.yaml` use reduced sample counts and model sizes for code validation; use `configs/research*.yaml` for the full experiments.
 
 The posterior encoders normalize waveform latents and use bounded Q/K cross-attention with explicit FP32 arithmetic in that module. Gradient norms use FP64 reductions; nonfinite or explosive gradients stop training before an optimizer update. Logs contain per-epoch numerical summaries, and failures write `training_failure.json`. Checkpoints from before this normalization protocol are not interchangeable with the current model.
 

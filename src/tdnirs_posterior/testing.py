@@ -250,7 +250,7 @@ def _bootstrap_mean(values: np.ndarray, seed: int, replicates: int) -> list[floa
 def _named_prior_scenarios(
     scenarios: list[PriorScenario],
 ) -> list[PriorScenario]:
-    """Return the non-empty paper scenarios used for prior interventions."""
+    """Return the named non-empty scenarios used for prior interventions."""
     return [
         scenario
         for scenario in scenarios
@@ -2871,7 +2871,22 @@ def run_test(
             "numerical_failure_cases": numerical_failure_cases,
             "runtime": {"elapsed_seconds": time.perf_counter() - started, "device": str(device), "device_name": torch.cuda.get_device_name(device) if device.type == "cuda" else platform.processor(), "torch_version": torch.__version__, "numpy_version": np.__version__, "python_version": platform.python_version()},
             "metric_definitions": {"point_estimate": "posterior median", "native_posterior": "one fixed draw set without rejection, top-up, or clipping", "normalized_mae": "physical MAE divided by the configured physical training-support width", "transformed_normalized_mae": "absolute error in the model's linear/log transformed coordinates divided by their normalized width of two; diagnostic only and distinct from headline nMAE", "normalized_crps": "CRPS in normalized model coordinates divided by two", "normalized_interval_width": "posterior interval width in normalized model coordinates divided by two", "inactive_parameters": "parameters not defined for the selected layer count are excluded from all losses and evaluation metrics", "paired_absolute_change": "candidate minus reference; negative means improvement", "paired_relative_improvement": "(reference minus candidate) divided by reference; positive means improvement", "paired_common_random_numbers": "paired conditions reuse the same DTOF, prior state, and posterior initial random draws for each case", "shuffled_prior": "same prior mask with the complete parameter vector supplied by a deterministic different case of the same layer count", "mask_only": "same prior mask with every known value fixed to zero in normalized coordinates; this is a neutral-value counterfactual, not a deployable prior", "shuffled_irf": "the paired four-channel IRF bundle is replaced by a deterministic different test case bundle of the same layer count", "fixed_irf": "all cases receive one deterministic four-channel measured-IRF medoid sampled only from the configured training acquisition distribution", "zero_irf": "all four IRF tensors are set to zero after preprocessing; this is an out-of-distribution destructive stress test, not a DTOF-only architecture", "channel_permuted_irf": "the four measured IRFs from the same case are cyclically permuted without fixed points, breaking the SDS-to-IRF pairing while preserving the bundle", "d1_plus_d2_mm": "N=3 third-layer starting depth, calculated by summing d1 and d2 within every joint posterior draw; normalized by the [1,35] mm study support and excluded only when both thicknesses are known", "overconfident_case": "truth lies outside the nominal 90% posterior interval", "tarp": "joint expected coverage from 32 deterministic random reference points per case", "candidate_multimodality": "stable GMM components; not proof of physical equivalence", "gmm_convergence": "unconverged fits are retried with stronger settings, recorded, and excluded from BIC selection; bootstrap failures remain in the stability denominator", "oracle_nearest_mode": "secondary diagnostic selected using test truth; it never replaces full-posterior accuracy or discards another mode"},
-            "limitations": ["MCX-simulated test data are not external real-instrument validation.", "Exact priors are an idealized condition.", "Shuffled priors are deliberately incorrect and test sensitivity to numeric values; degradation alone does not prove beneficial use of correct priors.", "Mask-Only fixes known values to the transformed-domain midpoint and is not an uncertainty-aware or deployable prior.", ("IRF interventions occur after independent channel-paired time alignment and therefore evaluate explicit shape conditioning, not learned raw system-delay correction." if time_alignment_enabled else "IRF interventions occur after preprocessing without time alignment; the experiment therefore retains system-level and channel-specific delay variation."), "Channel permutation in all_shared cases primarily permutes independent measured-IRF noise because the underlying true IRFs are identical; interpret it separately from heterogeneous modes.", "Zero IRF is an out-of-distribution destructive input and must not be described as the DTOF-only architecture ablation.", "Candidate modes have not been forward-validated.", "Nearest-truth mode results are oracle diagnostics that use the test truth and therefore are not deployable accuracy estimates.", "Publication claims require multiple training seeds, baselines, ablations, and external validation."],
+            "limitations": [
+                "Evaluation uses MCX-simulated data; external real-instrument performance is not measured by this report.",
+                "Exact priors assume error-free parameter values.",
+                "Shuffled priors test sensitivity to incorrect values; degradation alone does not establish beneficial use of correct priors.",
+                "Mask-Only supplies fixed midpoint values, not uncertain parameter priors.",
+                (
+                    "IRF interventions follow channel-paired time alignment and evaluate shape conditioning after delay correction."
+                    if time_alignment_enabled
+                    else "IRF interventions follow preprocessing without time alignment and retain system-level and channel-specific delays."
+                ),
+                "In all_shared cases, channel permutation primarily exchanges measured-IRF noise; the true IRFs are identical.",
+                "Zero IRF tests an out-of-distribution input; the DTOF-only ablation uses a separately trained architecture.",
+                "Candidate modes have not been validated by forward simulation.",
+                "Nearest-truth mode results use test truth for mode selection and are diagnostic estimates.",
+                "This report evaluates one checkpoint. Across-seed variability and model comparisons require the corresponding experiment reports.",
+            ],
         }
         _atomic_json(destination / "report.json", report)
         html_path = destination / "report.html"

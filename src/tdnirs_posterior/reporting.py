@@ -67,7 +67,7 @@ def _selected_parameter_rows(rows: Iterable[Mapping[str, Any]]) -> list[dict[str
 
 def _selected_thickness_rows(rows: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
     # Thickness evidence is most useful for the no-prior baseline and the
-    # named paper scenarios. Full per-mask rows remain in the companion CSV.
+    # named evaluation scenarios. Full per-mask rows remain in the companion CSV.
     return [
         dict(row)
         for row in rows
