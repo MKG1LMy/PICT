@@ -37,6 +37,8 @@ def test_missing_driver_does_not_raise():
 @pytest.mark.parametrize("install_fails", [False, True])
 def test_install_status_is_separate_from_driver_warning(monkeypatch, capsys, install_fails):
     module = deployment()
+    monkeypatch.setattr(module, "prepare_temp", lambda: None)
+    monkeypatch.setattr(module, "environment_python", lambda *args: Path("target/python.exe"))
     monkeypatch.setattr(module, "find_conda", lambda: "conda")
     monkeypatch.setattr(module, "driver_warnings", lambda cuda: ["Driver update recommended."])
     calls = []
@@ -55,6 +57,8 @@ def test_install_status_is_separate_from_driver_warning(monkeypatch, capsys, ins
     if not install_fails:
         assert "Installation completed" in output.out
         assert "--override-channels" in calls[1]
+        assert calls[2][:3] == [str(Path("target/python.exe")), "-m", "pip"]
+        assert all("run" not in command for command in calls)
 
 
 def test_pipeline_runs_all_models_and_seeds_with_one_entry(monkeypatch):

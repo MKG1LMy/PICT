@@ -11,9 +11,57 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 
+
+def prepare_temp():
+    """Validate temporary storage without changing persistent OS settings."""
+    candidates = [os.environ.get(key) for key in ("TEMP", "TMP", "TMPDIR")]
+    candidates.append(str(ROOT / ".runtime" / "tmp"))
+    failures = []
+    for value in dict.fromkeys(value for value in candidates if value):
+        directory = Path(value).expanduser().absolute()
+        try:
+            directory.mkdir(parents=True, exist_ok=True)
+            with tempfile.TemporaryFile(dir=directory) as probe:
+                probe.write(b"PICT temporary storage probe")
+                probe.flush()
+            for key in ("TEMP", "TMP", "TMPDIR"):
+                os.environ[key] = str(directory)
+            tempfile.tempdir = str(directory)
+            print(f"Temporary directory: {directory}", flush=True)
+            for message in failures:
+                print(f"Temporary directory warning: {message}", flush=True)
+            return directory
+        except OSError as error:
+            failures.append(f"{directory}: {error}")
+    raise RuntimeError("No writable temporary directory: " + "; ".join(failures))
+
+
+def environment_python(conda, name):
+    result = subprocess.run([conda, "env", "list", "--json"], capture_output=True,
+                            text=True, check=True)
+    matches = [Path(p) for p in json.loads(result.stdout)["envs"] if Path(p).name == name]
+    if len(matches) != 1:
+        raise RuntimeError(f"Expected one Conda environment named {name!r}; found {len(matches)}. Run setup first.")
+    executable = matches[0] / ("python.exe" if os.name == "nt" else "bin/python")
+    if not executable.is_file():
+        raise RuntimeError(f"Environment Python is missing: {executable}")
+    return executable
+
+
+def environment_variables(python):
+    """Use this environment's Python/DLL paths without conda activation scripts."""
+    prefix = python.parent if os.name == "nt" else python.parent.parent
+    environment = dict(os.environ)
+    paths = ([prefix, prefix / "Library/bin", prefix / "Scripts"] if os.name == "nt"
+             else [prefix / "bin"])
+    environment["PATH"] = os.pathsep.join(map(str, paths)) + os.pathsep + environment.get("PATH", "")
+    environment.update(CONDA_PREFIX=str(prefix), CONDA_DEFAULT_ENV=prefix.name,
+                       PYTHONNOUSERSITE="1", PYTHONIOENCODING="utf-8")
+    return environment
 
 class _Tee:
     def __init__(self, console, log):
@@ -30,9 +78,10 @@ class _Tee:
         self.log.flush()
 
 
-def run_command(command):
+def run_command(command, *, environment=None):
     """Stream both subprocess outputs to the console and the deployment log."""
-    environment = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUNBUFFERED="1")
+    environment = dict(os.environ if environment is None else environment,
+                       PYTHONIOENCODING="utf-8", PYTHONUNBUFFERED="1")
     with subprocess.Popen(command, cwd=ROOT, stdout=subprocess.PIPE,
                           stderr=subprocess.STDOUT, text=True, encoding="utf-8",
                           errors="replace", env=environment) as process:
@@ -100,6 +149,7 @@ def main(argv=None) -> int:
     warnings = []
     completed = False
     try:
+        prepare_temp()
         conda = find_conda()
         if args.dry_run:
             exists = False
@@ -108,15 +158,22 @@ def main(argv=None) -> int:
             exists = any(Path(p).name == args.env for p in json.loads(result.stdout)["envs"])
         command = [conda, "install" if exists else "create", "-n", args.env, "--yes",
                    "--override-channels", "-c", "conda-forge", f"python={args.python_version}", "pip"]
-        prefix = [conda, "run", "--no-capture-output", "-n", args.env, "python", "-m", "pip"]
-        commands = [command,
-                    [*prefix, "install", f"torch=={args.torch_version}", "--index-url",
+        print(subprocess.list2cmdline(command), flush=True)
+        if not args.dry_run:
+            run_command(command)
+            python = environment_python(conda, args.env)
+            environment = environment_variables(python)
+        else:
+            python = Path(f"<Conda environment {args.env}>/python")
+            environment = None
+        prefix = [str(python), "-m", "pip"]
+        commands = [[*prefix, "install", f"torch=={args.torch_version}", "--index-url",
                      f"https://download.pytorch.org/whl/cu{args.cuda}"],
                     [*prefix, "install", "--editable", f"{ROOT}[dev]"]]
         for command in commands:
             print(subprocess.list2cmdline(command), flush=True)
             if not args.dry_run:
-                run_command(command)
+                run_command(command, environment=environment)
         completed = True
     except (OSError, ValueError, KeyError, RuntimeError, subprocess.CalledProcessError) as error:
         if isinstance(error, subprocess.CalledProcessError):

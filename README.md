@@ -47,6 +47,8 @@ Hardware diagnostics are warnings. **Download errors, unavailable package versio
 
 The installer saves console output and subprocess errors to `deployment-logs/setup-<timestamp>-<pid>.log`. If deployment fails, retain that log. The CUDA PyTorch download is large and may take several minutes without a progress bar in redirected output.
 
+The installer invokes the target environment's Python directly for pip installation. The Windows training launcher uses the same approach, avoiding temporary `conda activate` batch scripts. These scripts check temporary storage and fall back to `.runtime/tmp` inside this project if the configured locations are unusable. TEMP/TMP changes apply only to the launched process and its children; Windows user and system settings are not changed. This bootstrap supplies the project environment's executable and DLL paths; it does not execute arbitrary third-party Conda activation hooks.
+
 ## One training entry point
 
 On **Windows**, double-click `train.bat`, or run it from a terminal:

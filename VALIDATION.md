@@ -35,3 +35,9 @@ The previous unlogged deployment failure could not be reproduced. One confirmed 
 Windows `train.bat` and Linux `train.sh` share the internal Python controller; `setup.sh` is also provided. Windows argument forwarding, error propagation and deployment logging passed automated checks. Bash syntax and argument/error forwarding were checked using Git Bash and a fake Conda command, including a path containing spaces. Native Linux deployment remains unverified. No model training was started during this follow-up.
 
 Passing these tests does not establish long-run numerical stability, convergence or scientific validity. Choose the software and dataset licenses before publication. No remote repository was created or pushed.
+
+## Conda temporary activation repair (2026-10-13)
+
+A subsequent deployment failed inside `conda run` while creating an activation temporary file, before pip executed. The configured Windows temporary directory was writable on inspection; that check does not establish the original transient cause. Installation now resolves and directly invokes the dedicated environment's Python. The Windows training bootstrap does the same, with environment-specific executable/DLL paths. Temporary storage is probed and falls back to project-local `.runtime/tmp`; persistent OS settings are untouched.
+
+The actual Windows `train.bat --help` and complete idempotent `setup.bat` installation both succeeded with TEMP, TMP and TMPDIR deliberately pointing to a regular file instead of a directory. The fallback was exercised and pip completed successfully. Deployment log: `deployment-logs/setup-20261013-110929-23304.log`. Scoped regression tests: 18 passed, 3 skipped (native Linux and opt-in GMM checks). No formal training was launched.

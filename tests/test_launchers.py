@@ -39,20 +39,46 @@ class LauncherTests(unittest.TestCase):
             self.assertIn("stdout-record", text)
             self.assertIn("stderr-record", text)
 
-    @unittest.skipUnless(os.name == "nt", "Windows launcher")
-    def test_bat_forwards_arguments_environment_and_failure(self):
+    def test_training_bootstrap_forwards_arguments_and_failure(self):
+        with patch.dict(sys.modules, {"setup_environment": installer()}):
+            spec = importlib.util.spec_from_file_location("bootstrap", ROOT / "deploy/start_training.py")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+        with patch.object(module, "prepare_temp"), patch.object(module, "find_conda", return_value="conda"), \
+             patch.object(module, "environment_python", return_value=Path(sys.executable)) as resolve, \
+             patch.object(module.subprocess, "call", return_value=7) as run, \
+             patch.dict(os.environ, {"PICT_ENV": "custom_env"}), \
+             patch.object(sys, "argv", ["launcher", "--models", "cnn", "ann"]):
+            self.assertEqual(module.main(), 7)
+            resolve.assert_called_once_with("conda", "custom_env")
+            self.assertEqual(run.call_args.args[0][0], sys.executable)
+            self.assertEqual(run.call_args.args[0][2:], ["--models", "cnn", "ann"])
+
+    def test_invalid_temp_falls_back_without_persistent_settings(self):
+        module = installer()
         with tempfile.TemporaryDirectory() as temporary:
-            conda = Path(temporary) / "fake conda.bat"
-            conda.write_text("@echo off\necho %*\nexit /b 7\n", encoding="ascii")
-            environment = dict(os.environ, CONDA_EXE=str(conda), PICT_ENV="custom_env",
-                               PICT_TRAIN_NO_PAUSE="1")
-            result = subprocess.run([os.environ.get("COMSPEC", "cmd.exe"), "/d", "/c",
-                                     str(ROOT / "train.bat"), "--models", "cnn", "ann"],
-                                    env=environment, capture_output=True, text=True)
-            self.assertEqual(result.returncode, 7, result.stdout + result.stderr)
-            self.assertIn("-n \"custom_env\"", result.stdout)
-            self.assertIn("run_training.py", result.stdout)
-            self.assertIn("--models cnn ann", result.stdout)
+            invalid = Path(temporary) / "not-a-directory"
+            invalid.touch()
+            with patch.object(module, "ROOT", Path(temporary)), \
+                 patch.dict(os.environ, {key: str(invalid) for key in ("TEMP", "TMP", "TMPDIR")}), \
+                 patch.object(tempfile, "tempdir", tempfile.tempdir):
+                expected = Path(temporary) / ".runtime/tmp"
+                self.assertEqual(module.prepare_temp(), expected)
+                self.assertEqual(os.environ["TEMP"], str(expected))
+
+    def test_environment_python_is_resolved_from_conda_not_path(self):
+        import json
+        from types import SimpleNamespace
+        module = installer()
+        with tempfile.TemporaryDirectory() as temporary:
+            prefix = Path(temporary) / "pict_model"
+            python = prefix / ("python.exe" if os.name == "nt" else "bin/python")
+            python.parent.mkdir(parents=True)
+            python.touch()
+            with patch.object(module.subprocess, "run", return_value=SimpleNamespace(stdout=json.dumps({"envs": [str(prefix)]}))):
+                self.assertEqual(module.environment_python("conda", "pict_model"), python)
+                with self.assertRaises(RuntimeError):
+                    module.environment_python("conda", "missing")
 
     @unittest.skipUnless(os.name == "posix", "Native Linux launcher")
     def test_shell_forwards_arguments_environment_and_failure(self):

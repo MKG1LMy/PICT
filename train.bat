@@ -8,7 +8,13 @@ if not defined PICT_ENV set "PICT_ENV=pict_model"
 call "%~dp0deploy\find_conda.bat"
 if errorlevel 1 goto finish
 echo Training environment: %PICT_ENV%
-call "%PICT_CONDA%" run --no-capture-output -n "%PICT_ENV%" python "%~dp0deploy\run_training.py" %*
+set "CONDA_EXE=%PICT_CONDA%"
+for %%I in ("%PICT_CONDA%") do set "PICT_BASE_PYTHON=%%~dpI..\python.exe"
+if not exist "%PICT_BASE_PYTHON%" (
+    echo Conda base Python was not found next to its Scripts directory.
+    goto finish
+)
+"%PICT_BASE_PYTHON%" "%~dp0deploy\start_training.py" %*
 set "PICT_TRAIN_CODE=%ERRORLEVEL%"
 if not "%PICT_TRAIN_CODE%"=="0" echo Training did not complete. Review the messages above.
 :finish
